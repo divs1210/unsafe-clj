@@ -1,68 +1,71 @@
-(ns ^{:author "Ryan Serazin"
-      :doc "Just a wrapper lib for sun.misc.Unsafe"}
-  unsafe.core)
+(ns unsafe.core
+  "A wrapper lib for sun.misc.Unsafe"
+  {:author "Ryan Serazin"}
+  (:import clojure.reflect.Field
+           sun.misc.Unsafe))
 
-(defn- make-unsafe []
+(set! *warn-on-reflection* true)
+
+(defn- ^Unsafe make-unsafe []
   "reflection!"
-  (let [constructor (.getDeclaredConstructor sun.misc.Unsafe nil)]
+  (let [constructor (.getDeclaredConstructor Unsafe nil)]
     (.setAccessible constructor true)
     (.newInstance constructor nil)))
 
 ;todo secure this
-(defonce the-unsafe (make-unsafe))
+(defonce ^Unsafe the-unsafe
+  (make-unsafe))
 
-(defn address-size []
+(defn ^long address-size
+  []
   (.addressSize the-unsafe))
 
-(defn ^Object allocate-instance 
+(defn ^Object allocate-instance
   [^java.lang.Class c]
   (.allocateInstance the-unsafe c))
 
-(defn ^long allocate-memory 
-  [b]
-  (.allocateMemory the-unsafe (long b)))
+(defn ^long allocate-memory
+  [^long b]
+  (.allocateMemory the-unsafe b))
 
-(defn ^int array-base-offset 
+(defn ^int array-base-offset
   [^java.lang.Class c]
   (.arrayBaseOffset the-unsafe c))
 
-(defn ^int array-index-scale 
+(defn ^int array-index-scale
   [^java.lang.Class c]
   (.arrayIndexScale the-unsafe c))
 
 (defn ^boolean CAS-int
-  [obj offset expected x]
-  (let [offset   (long offset)
-        expected (int expected)
+  [^Object obj ^long offset ^long expected ^long x]
+  (let [expected (int expected)
         x        (int x)]
     (.compareAndSwapInt the-unsafe obj offset expected x)))
 
 (defn ^boolean CAS-long
-  [obj offset expected x]
-  (let [offset   (long offset)
-        expected (long expected)
-        x        (long x)]
-    (.compareAndSwapLong the-unsafe obj offset expected x)))
+  [^Object obj ^long offset ^long expected ^long x]
+  (.compareAndSwapLong the-unsafe obj offset expected x))
 
 (defn ^boolean CAS-obj
-  [obj offset expected x]
-  (let [offset   (long offset)]
-    (.compareAndSwapObject the-unsafe obj offset expected x)))
+  [^Object obj ^long offset ^long expected ^long x]
+  (.compareAndSwapObject the-unsafe obj offset expected x))
 
-(defn copy-memory 
+(defn copy-memory
   [from foffset to toffset b]
   (let [foffset (long foffset)
         toffset (long toffset)
         b       (long b)]
-  (.copyMemory the-unsafe 
+  (.copyMemory the-unsafe
                from foffset to toffset b)))
 
-(defn define-anonymous-class 
-  [^java.lang.Class host data cp-patches]
-  (.defineAnonymousClass the-unsafe 
-                         host (bytes data) (object-array cp-patches)))
+(defn define-anonymous-class
+  [^Class host ^bytes data cp-patches]
+  (.defineAnonymousClass the-unsafe
+                         host
+                         data
+                         (object-array cp-patches)))
 
-(defn define-class 
+(defn define-class
   [^String the-name b off len & util]
   (let [b   (bytes b)
         off (int off)
@@ -73,93 +76,75 @@
       (.defineClass the-unsafe the-name b off len loader domain))))
 
 (defn ensure-class-init
-  [^java.lang.Class c]
+  [^Class c]
   (.ensureClassInitialized the-unsafe c))
 
-(defn free-memory 
-  [address]
-  (let [address (long address)]
-    (.freeMemory the-unsafe address)))
+(defn free-memory
+  [^long addr]
+  (.freeMemory the-unsafe addr))
 
 (defn ^long get-address
-  [address]
-  (let [address (long address)]
-    (.getAddress the-unsafe address)))
+  [^long addr]
+  (.getAddress the-unsafe addr))
 
 (defn ^boolean get-boolean
-  [obj offset]
-  (let [offset (long offset)]
-    (.getBoolean the-unsafe obj offset)))
+  [^Object obj ^long offset]
+  (.getBoolean the-unsafe obj offset))
 
 (defn ^boolean get-boolean-volatile
-  [obj offset]
-  (let [offset (long offset)]
-    (.getBooleanVolatile the-unsafe obj offset)))
+  [^Object obj ^long offset]
+  (.getBooleanVolatile the-unsafe obj offset))
 
-(defn ^byte get-byte 
-  ([address]
-   (let [address (long address)]
-     (.getByte the-unsafe address)))
-   ([obj offset]
-    (let [offset (long offset)]
-      (.getByte the-unsafe obj offset))))
+(defn ^byte get-byte
+  ([^long addr]
+   (.getByte the-unsafe addr))
+  ([^Object obj ^long offset]
+    (.getByte the-unsafe obj offset)))
 
 (defn ^byte get-byte-volatile
-  [obj offset]
-  (let [offset (long offset)]
-    (.getByteVolatile the-unsafe obj offset)))
+  [^Object obj ^long offset]
+  (.getByteVolatile the-unsafe obj offset))
 
 (defn ^char get-char
-  ([address]
-   (let [address (long address)]
-     (.getChar the-unsafe address)))
-  ([obj offset]
-   (let [offset (long offset)]
-     (.getChar the-unsafe obj offset))))
+  ([^long addr]
+   (.getChar the-unsafe addr))
+  ([^Object obj ^long offset]
+   (.getChar the-unsafe obj offset)))
 
 (defn ^char get-char-volatile
-  [obj offset]
+  [^Object obj offset]
   (let [offset (long offset)]
     (.getCharVolatile the-unsafe obj offset)))
 
-(defn ^double get-double 
-  ([address]
-   (let [address (long address)]
-     (.getDouble the-unsafe address)))
-  ([obj offset]
-   (let [offset (long offset)]
-     (.getDouble the-unsafe obj offset))))
+(defn ^double get-double
+  ([^long addr]
+   (.getDouble the-unsafe addr))
+  ([^Object obj ^long offset]
+   (.getDouble the-unsafe obj offset)))
 
 (defn ^double get-double-volatile
-  [obj offset]
-  (let [offset (long offset)]
-    (.getDoubleVolatile the-unsafe obj offset)))
+  [^Object obj ^long offset]
+  (.getDoubleVolatile the-unsafe obj offset))
 
-(defn ^float get-float 
-  ([address]
-   (let [address (long address)]
-     (.getFloat the-unsafe address)))
-  ([obj offset]
-   (let [offset (long offset)]
-     (.getFloat the-unsafe obj offset))))
+(defn ^float get-float
+  ([^long addr]
+   (.getFloat the-unsafe addr))
+  ([^Object obj ^long offset]
+   (.getFloat the-unsafe obj offset)))
 
 (defn ^float get-float-volatile
-  [obj offset]
-  (let [offset (long offset)]
-    (.getFloatVolatile the-unsafe obj offset)))
+  [^Object obj ^long offset]
+  (.getFloatVolatile the-unsafe obj offset))
 
 (defn ^int get-int
-  ([address]
-   (let [address (long address)]
-     (.getInt the-unsafe address)))
-  ([obj offset]
-   (let [offset (long offset)]
-     (.getInt the-unsafe obj offset))))
+  ([^long addr]
+   (.getInt the-unsafe addr))
+  ([^Object obj ^long offset]
+   (.getInt the-unsafe obj offset)))
 
 (defn ^int get-int-volatile
-  [obj offset]
-  (let [offset (long offset)]
-    (.getIntVolatile the-unsafe obj offset)))
+  [^Object obj ^long offset]
+  (.getIntVolatile the-unsafe obj offset))
 
 (defn ^int get-load-average
   [loadavg nelms]
@@ -168,228 +153,201 @@
     (.getLoadAverage the-unsafe loadavg nelms)))
 
 (defn ^long get-long
-  ([address]
-   (let [address (long address)]
-     (.getLong the-unsafe address)))
-  ([obj offset]
-   (let [offset (long offset)]
-     (.getLong the-unsafe obj offset))))
+  ([^long addr]
+   (.getLong the-unsafe addr))
+  ([^Object obj ^long offset]
+   (.getLong the-unsafe obj offset)))
 
 (defn ^long get-long-volatile
-  [obj offset]
-  (let [offset (long offset)]
-    (.getLongVolatile the-unsafe obj offset)))
+  [^Object obj ^long offset]
+  (.getLongVolatile the-unsafe obj offset))
 
-(defn get-obj
-  ([address]
-   (let [address (long address)]
-     (.getObject the-unsafe address)))
-  ([obj offset]
-   (let [offset (long offset)]
-     (.getObject the-unsafe obj offset))))
+(defn ^Object get-obj
+  [^Object obj ^long offset]
+  (.getObject the-unsafe obj offset))
 
 (defn get-obj-volatile
-  [obj offset]
-  (let [offset (long offset)]
-    (.getObjectVolatile the-unsafe obj offset)))
+  [^Object obj ^long offset]
+  (.getObjectVolatile the-unsafe obj offset))
 
 (defn ^short get-short
-  ([address]
-   (let [address (long address)]
-     (.getShort the-unsafe address)))
-  ([obj offset]
-   (let [offset (long offset)]
-     (.getShort the-unsafe obj offset))))
+  ([^long addr]
+   (.getShort the-unsafe addr))
+  ([^Object obj ^long offset]
+   (.getShort the-unsafe obj offset)))
 
 (defn ^short get-short-volatile
-  [obj offset]
-  (let [offset (long offset)]
-    (.getShortVolatile the-unsafe obj offset)))
+  [^Object obj ^long offset]
+  (.getShortVolatile the-unsafe obj offset))
 
 (defn unsafe-monitor-enter
-  [obj]
+  [^Object obj]
   (.monitorEnter the-unsafe obj))
 
 (defn unsafe-monitor-exit
-  [obj]
+  [^Object obj]
   (.monitorExit the-unsafe obj))
 
 (defn ^long object-field-offset
-  [^java.lang.reflect.Field f]
+  [^Field f]
   (.objectFieldOffset the-unsafe f))
 
 (defn ^int page-size []
   (.pageSize the-unsafe))
 
 (defn park
-  [isAbsolute ptime]
-  (let [is-absolute (boolean isAbsolute)
-        ptime (long ptime)]
-    (.park the-unsafe is-absolute ptime)))
+  [absolute? ^long ptime]
+  (let [absolute? (boolean absolute?)]
+    (.park the-unsafe absolute? ptime)))
 
 (defn put-address
-  [address x]
-  (let [address (long address)
-        x       (long x)]
-    (.putAddress the-unsafe address x)))
+  [^long addr ^long x]
+  (.putAddress the-unsafe addr x))
 
 (defn put-boolean
-  [obj offset x]
-  (let [offset (long offset)
-        x      (boolean x)]
-    (.putBoolean the-unsafe offset x)))
+  [^Object obj ^long offset x]
+  (let [x (boolean x)]
+    (.putBoolean the-unsafe obj offset x)))
 
 (defn put-boolean-volatile
-  [obj offset x]
-  (let [offset (long offset)
-        x      (boolean x)]
-    (.putBooleanVolatile the-unsafe offset x)))
+  [^Object obj ^long offset x]
+  (let [x (boolean x)]
+    (.putBooleanVolatile the-unsafe obj offset x)))
 
 (defn put-byte
-  [obj offset x]
-  (let [offset (long offset)
-        x      (byte x)]
-    (.putByte the-unsafe offset x)))
+  ([^long addr x]
+   (let [x (byte x)]
+     (.putByte the-unsafe addr x)))
+  ([^Object obj ^long offset x]
+   (let [x (byte x)]
+     (.putByte the-unsafe obj offset x))))
 
 (defn put-byte-volatile
-  [obj offset x]
-  (let [offset (long offset)
-        x      (byte x)]
-    (.putByteVolatile the-unsafe offset x)))
+  [^Object obj ^long offset x]
+  (let [x (byte x)]
+    (.putByteVolatile the-unsafe obj offset x)))
 
 (defn put-char
-  [obj offset x]
-  (let [offset (long offset)
-        x      (char x)]
-    (.putChar the-unsafe offset x)))
+  ([^long addr x]
+   (let [x (char x)]
+     (.putChar the-unsafe addr x)))
+  ([^Object obj ^long offset x]
+   (let [x (char x)]
+     (.putChar the-unsafe obj offset x))))
 
 (defn put-char-volatile
-  [obj offset x]
-  (let [offset (long offset)
-        x      (char x)]
-    (.putCharVolatile the-unsafe offset x)))
+  [^Object obj ^long offset x]
+  (let [x (char x)]
+    (.putCharVolatile the-unsafe obj offset x)))
 
 (defn put-double
-  [obj offset x]
-  (let [offset (long offset)
-        x      (double x)]
-    (.putDouble the-unsafe offset x)))
+  ([^long addr ^double x]
+   (.putDouble the-unsafe addr x))
+  ([^Object obj ^long offset ^double x]
+   (.putDouble the-unsafe obj offset x)))
 
 (defn put-double-volatile
-  [obj offset x]
-  (let [offset (long offset)
-        x      (double x)]
-    (.putDoubleVolatile the-unsafe offset x)))
+  [^Object obj ^long offset ^double x]
+  (.putDoubleVolatile the-unsafe obj offset x))
 
 (defn put-float
-  [obj offset x]
-  (let [offset (long offset)
-        x      (float x)]
-    (.putFloat the-unsafe offset x)))
+  ([^long addr x]
+   (let [x (float x)]
+     (.putFloat the-unsafe addr x)))
+  ([^Object obj ^long offset x]
+   (let [x (float x)]
+     (.putFloat the-unsafe obj offset x))))
 
 (defn put-float-volatile
-  [obj offset x]
-  (let [offset (long offset)
-        x      (float x)]
-    (.putFloatVolatile the-unsafe offset x)))
+  [^Object obj ^long offset x]
+  (let [x (float x)]
+    (.putFloatVolatile the-unsafe obj offset x)))
 
 (defn put-int
-  [obj offset x]
-  (let [offset (long offset)
-        x      (int x)]
-    (.putInt the-unsafe offset x)))
+  ([^long addr x]
+   (let [x (int x)]
+     (.putInt the-unsafe addr x)))
+  ([^Object obj ^long offset x]
+   (let [x (int x)]
+     (.putInt the-unsafe obj offset x))))
 
 (defn put-int-volatile
-  [obj offset x]
-  (let [offset (long offset)
-        x      (int x)]
-    (.putIntVolatile the-unsafe offset x)))
+  [^Object obj ^long offset x]
+  (let [x (int x)]
+    (.putIntVolatile the-unsafe obj offset x)))
 
 (defn put-long
-  [obj offset x]
-  (let [offset (long offset)
-        x      (long x)]
-    (.putLong the-unsafe offset x)))
+  ([^long addr ^long x]
+   (.putLong the-unsafe addr x))
+  ([^Object obj ^long offset ^long x]
+   (.putLong the-unsafe obj offset x)))
 
 (defn put-long-volatile
-  [obj offset x]
-  (let [offset (long offset)
-        x      (long x)]
-    (.putLongVolatile the-unsafe offset x)))
+  [^Object obj ^long offset ^long x]
+  (.putLongVolatile the-unsafe obj offset x))
 
 (defn put-obj
-  [obj offset x]
-  (let [offset (long offset)]
-    (.putObject the-unsafe offset x)))
+  [^Object obj ^long offset ^Object x]
+  (.putObject the-unsafe obj offset x))
 
 (defn put-obj-volatile
-  [obj offset x]
-  (let [offset (long offset)]
-    (.putObjectVolatile the-unsafe offset x)))
+  [^Object obj ^long offset ^Object x]
+  (.putObjectVolatile the-unsafe obj offset x))
 
 (defn put-ordered-int
-  [obj offset x]
-  (let [offset (long offset)
-        x      (int x)]
-    (.putOrderedInt the-unsafe offset x)))
+  [^Object obj ^long offset x]
+  (let [x (int x)]
+    (.putOrderedInt the-unsafe obj offset x)))
 
 (defn put-ordered-long
-  [obj offset x]
-  (let [offset (long offset)
-        x      (long x)]
-    (.putOrderedLong the-unsafe offset x)))
+  [^Object obj ^long offset ^long x]
+  (.putOrderedLong the-unsafe obj offset x))
 
 (defn put-ordered-obj
-  [obj offset x]
-  (let [offset (long offset)]
-    (.putOrderedObject the-unsafe offset x)))
+  [^Object obj ^long offset ^Object x]
+  (.putOrderedObject the-unsafe obj offset x))
 
 (defn put-short
-  [obj offset x]
-  (let [offset (long offset)
-        x      (short x)]
-    (.putShort the-unsafe offset x)))
+  ([^long addr x]
+   (let [x (short x)]
+     (.putShort the-unsafe addr x)))
+  ([^Object obj ^long offset x]
+   (let [x (short x)]
+     (.putShort the-unsafe obj offset x))))
 
 (defn put-short-volatile
-  [obj offset x]
-  (let [offset (long offset)
-        x      (short x)]
-    (.putShortVolatile the-unsafe offset x)))
+  [^Object obj ^long offset x]
+  (let [x (short x)]
+    (.putShortVolatile the-unsafe obj offset x)))
 
 (defn ^long reallocate-memory
-  [address b]
-  (let [address (long address)
-        b       (long b)]
-    (.reallocateMemory the-unsafe address b)))
+  [^long addr ^long b]
+  (.reallocateMemory the-unsafe addr b))
 
 (defn set-memory
-  ([address bs value]
-  (let [address (long address)
-        bs      (long bs)
-        value   (byte value)]
-    (.setMemory the-unsafe address bs value)))
-  ([obj offset bs value]
-   (let [offset (long offset)
-         bs     (long bs)
-         value  (byte value)]
+  ([^long addr ^long bs value]
+   (let [value (byte value)]
+     (.setMemory the-unsafe addr bs value)))
+  ([^Object obj ^long offset ^long bs value]
+   (let [value (byte value)]
      (.setMemory the-unsafe obj offset bs value))))
 
-(defn ^java.lang.Object static-field-base
-  [^java.lang.reflect.Field f]
+(defn ^Object static-field-base
+  [^Field f]
   (.staticFieldBase the-unsafe f))
 
 (defn ^long static-field-offset
-  [^java.lang.reflect.Field f]
+  [^Field f]
   (.staticFieldOffset the-unsafe f))
 
 (defn throw-exception
-  [^java.lang.Throwable ee]
-  (.throwException throw-exception ee))
+  [^Throwable e]
+  (.throwException the-unsafe e))
 
 (defn ^boolean try-monitor-enter
-  [obj]
+  [^Object obj]
   (.tryMonitorEnter the-unsafe obj))
 
 (defn unpark
-  [thread]
+  [^Thread thread]
   (.unpark the-unsafe thread))
